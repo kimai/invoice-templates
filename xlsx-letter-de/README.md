@@ -1,4 +1,4 @@
-# Excel Invoice template as letter (German)
+# Excel - Invoice letter (German)
 
 Back to [main page](https://github.com/kimai/invoice-templates).
 
