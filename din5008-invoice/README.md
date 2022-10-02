@@ -10,7 +10,7 @@ You can customize this template by overriding it to change variables and overrid
 In your template you can change variables to adjust this template to your needs.
 Below is a list of possible variables with a brief explanation of their function.
 
-Example for overriding a varialbe:
+Example for overriding a variable:
 ```twig
 {% extends '@invoice/din5008-invoice.pdf.twig' %}
 
