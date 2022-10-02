@@ -14,7 +14,7 @@ None yet.
 
 ### Excel
 
-None yet.
+- [Excel letter](xlsx-letter-de)
 
 ### CSV
 
@@ -48,7 +48,7 @@ Please read the official documentation at [https://www.kimai.org/documentation/i
 - Add a `screenshot.png` (or .jpg) image if possible
 - Add the template file to the directory
 - Edit the main [README.md](https://github.com/kimai/invoice-templates/blob/main/README.md) and add a link to your new directory under the appropriate format section
-- Commit an Push your changes
+- Commit and Push your changes
 - Open a PR
 - Wait for feedback and merge 😃
 
