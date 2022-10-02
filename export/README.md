@@ -1,6 +1,6 @@
 # Export CSV template
 
-Back to [main page](/).
+Back to [main page](https://github.com/kimai/invoice-templates).
 
 ## Introduction
 
