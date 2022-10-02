@@ -1,0 +1,436 @@
+{%- set setAutoTopMargin = pdfContext.setOption('setAutoTopMargin', false) -%}
+{%- set setAutoBottomMargin = pdfContext.setOption('setAutoBottomMargin', false) -%}
+{%- set marginBottom = pdfContext.setOption('margin_bottom', 20) -%}
+{%- set marginLeft = pdfContext.setOption('margin_left', 25) -%}
+{%- set marginRight = pdfContext.setOption('margin_right', 20) -%}
+
+{# You can override the following variables in your own template to customize the template: #}
+{# set logo url #}
+{% set logoUrl = logoUrl|default(config('theme.branding.logo')) %}
+{# set color for header background, table header color and footer separator line #}
+{% set accentColor = accentColor|default('#708090') %}
+{# set font family #}
+{% set fontFamily = fontFamily|default("'Arial', sans-serif") %}
+{# set an introduction text that is displayed before the invoice positions #}
+{% set introductionText = introductionText|default(false) %}
+{# set the sender address that is displayed in the address window #}
+{% set invoiceSenderAddress = invoiceSenderAddress|default(model.template.address|nl2str(' &bull; ')) %}
+{# set if fold and hole marks are printed #}
+{% set showFoldHoleMarks = showFoldHoleMarks ?? true %}
+
+<!DOCTYPE html>
+{% set fallback = app.request is not null ? app.request.locale : 'en' %}
+{% set language = model.template.language|default(fallback) %}
+{% set isDecimal = model.template.decimalDuration|default(false) %}
+{% set currency = model.currency %}
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{{ model.invoiceNumber }}-{{ model.customer.company|default(model.customer.name)|u.snake }}{% endblock %}</title>
+    {% block invoice_styles %}
+    <style type="text/css">
+      @page {
+        margin-top: 45mm;
+        header: html_header;
+        footer: html_footer;
+      }
+
+      @page :first {
+        margin-top: 90mm;
+      }
+
+      body {
+        font-family: {{ fontFamily|raw }};
+        font-size: 10pt;
+        line-height: 14pt;
+        margin: 0;
+        padding: 0;
+      }
+
+      .header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 25mm;
+        padding-top: 5mm;
+        font-weight: bold;
+        background: {{ accentColor }};
+        border: none;
+        box-shadow: 0 0 10mm #000;
+      }
+
+      .header-logo {
+        padding-left: 25mm;
+        padding-right: 5mm;
+      }
+
+      .header-logo-image {
+        width: 20mm;
+        height: 20mm;
+      }
+
+      .header-company {
+        font-size: 20pt;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: middle;
+        padding-right: 20mm;
+        height: 20mm;
+        color: #fff;
+      }
+
+      .invoice-address {
+        position: absolute;
+        display: block;
+        overflow: visible;
+        top: 45mm;
+        width: 85mm;
+        height: 45mm;
+        padding: 0;
+      }
+
+      address {
+        font-style: normal;
+      }
+
+      .address-sender td {
+        height: 17.7mm;
+        font-size: 8pt;
+        vertical-align: bottom;
+        border-bottom: 1px dotted #000;
+      }
+
+      .address-recipient {
+        padding-top: 1mm;
+      }
+
+      .invoice-details {
+        position: absolute;
+        overflow: visible;
+        right: 20mm;
+        width: 75mm;
+        top: 50mm;
+        height: 60mm;
+      }
+
+      .invoice-details-label {
+        text-align: right;
+        font-weight: normal;
+      }
+
+      .invoice-details-value {
+        padding-left: 2mm;
+      }
+
+      .content {
+        margin-top: 14pt;
+      }
+
+      .introduction-text {
+        margin-bottom: 10pt;
+      }
+
+      .items th {
+        color: {{ accentColor }};
+        border-bottom: 1px solid #000;
+      }
+
+      .items th,
+      .items td {
+        padding: 1mm 0.5mm;
+      }
+
+      .text-nowrap {
+        white-space: nowrap;
+      }
+
+      .text-left {
+        text-align: left;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+
+      .text-small,
+      small {
+        font-size: 8pt;
+      }
+
+      .footer {
+        padding-top: 5mm;
+        font-size: 8pt;
+        border-top: 1px solid {{ accentColor }};
+      }
+
+      .footer td {
+        padding: 0 3mm;
+        vertical-align: top;
+      }
+
+      .fold_mark {
+        position: absolute;
+        left: 0;
+        top: 105mm;
+        width: 5mm;
+        border-bottom: 1px solid #cccccc;
+      }
+
+      .fold_mark_1 {
+        top: 105mm;
+      }
+
+      .fold_mark_2 {
+        top: 210mm;
+      }
+
+      .hole_mark {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 10mm;
+        border-bottom: 2px solid #cccccc;
+      }
+    </style>
+    {% endblock %}
+</head>
+<body>
+<!--mpdf
+<htmlpageheader name="header">
+    {% block header %}
+        <div class="header">
+            <table cellpadding="0" cellspacing="0" width="100%" border="0">
+                <tr>
+                    {% block header_logo %}
+                        {% if logoUrl %}
+                        <td class="header-logo">
+                            <img src="{{ logoUrl }}" class="header-logo-image" alt="" />
+                        </td>
+                        {% endif %}
+                    {% endblock %}
+                    {% block header_company %}
+                    <td class="header-company">
+                        {{ model.template.company }}
+                    </td>
+                    {% endblock %}
+                </tr>
+            </table>
+        </div>
+        {% if showFoldHoleMarks %}
+            {% block header_fold_hole_marks %}
+                <div class="fold_mark fold_mark_1"></div>
+                <div class="hole_mark"></div>
+                <div class="fold_mark fold_mark_2"></div>
+            {% endblock %}
+        {% endif %}
+    {% endblock %}
+</htmlpageheader>
+<htmlpagefooter name="footer">
+    {% block footer %}
+        <table class="footer" cellpadding="0" cellspacing="0" width="100%" border="0">
+            <tr>
+                {% block footer_address %}
+                <td style="width: 28%">
+                    {{ model.template.address|nl2br }}
+                    {% if model.template.vatId %}
+                        <br>{{ 'label.vat_id'|trans }}: {{ model.template.vatId }}
+                    {% endif %}
+                </td>
+                {% endblock %}
+                {% block footer_contact %}
+                <td>
+                    {{ model.template.contact|nl2br }}
+                </td>
+                {% endblock %}
+                {% block footer_payment_details %}
+                <td width="33%">
+                    {{ model.template.paymentDetails|nl2br }}
+                </td>
+                {% endblock %}
+            </tr>
+        </table>
+        {% block footer_page_numbers %}
+        <p class="text-right text-small">{{ 'export.page_of'|trans({'%page%': '{PAGENO}', '%pages%': '{nb}'}) }}</p>
+        {% endblock %}
+    {% endblock %}
+</htmlpagefooter>
+mpdf-->
+{% block invoice_address %}
+<div class="invoice-address">
+    {% block invoice_address_sender %}
+    <address class="address-sender">
+        <table cellpadding="0" cellspacing="0" width="100%" border="0">
+            <tr>
+                <td>{{ invoiceSenderAddress|raw }}</td>
+            </tr>
+        </table>
+    </address>
+    {% endblock %}
+
+    {% block invoice_address_recipient %}
+    <address class="address-recipient">
+        {{ model.customer.company|default(model.customer.name) }}<br>
+        {% if model.customer.contact %}
+            {{ model.customer.contact }}<br>
+        {% endif %}
+        {{ model.customer.address|nl2br }}<br>
+        {{ model.customer.country|country }}
+    </address>
+    {% endblock %}
+</div>
+{% endblock %}
+
+{% block invoice_details %}
+<div class="invoice-details">
+    <table cellpadding="0" cellspacing="0" width="100%" border="0">
+        {% block invoice_details_invoice_number %}
+            <tr>
+                <th class="invoice-details-label">{{ 'invoice.number'|trans }}:</th>
+                <td class="invoice-details-value">{{ model.invoiceNumber }}</td>
+            </tr>
+        {% endblock %}
+        {% block invoice_details_service_date %}
+            <tr>
+                <th class="invoice-details-label">{{ 'invoice.service_date'|trans }}:</th>
+                <td class="invoice-details-value">{{ model.query.begin|date('d.m.Y') }}
+                    &ndash; {{ model.query.end|date('d.m.Y') }}</td>
+            </tr>
+        {% endblock %}
+        {% block invoice_details_due_date %}
+            <tr>
+                <td class="invoice-details-label">{{ 'invoice.due_days'|trans }}:</td>
+                <td class="invoice-details-value">{{ model.dueDate|date_short }}</td>
+            </tr>
+        {% endblock %}
+        {% block invoice_details_customer_vatid %}
+            <tr>
+                <th class="invoice-details-label">{{ 'label.vat_id'|trans }}:</th>
+                <td class="invoice-details-value">{{ model.customer.vatId }}</td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
+        {% endblock %}
+        {% block invoice_details_contact %}
+            {% for line in model.template.contact|split("\n") %}
+                {% set lineData = line|split(':', 2) %}
+                <tr>
+                    <th class="invoice-details-label">{{ attribute(lineData, 0) }}:</th>
+                    <td class="invoice-details-value">{{ attribute(lineData, 1) }}</td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
+        {% endblock %}
+        {% block invoice_details_invoice_date %}
+            <tr>
+                <td class="invoice-details-label">{{ 'label.date'|trans }}:</td>
+                <td class="invoice-details-value">{{ model.invoiceDate|date_short }}</td>
+            </tr>
+        {% endblock %}
+    </table>
+</div>
+{% endblock %}
+<br>
+{% block invoice_content %}
+<div class="content">
+    <!-- CONTENT_PART -->
+    {% block invoice_content_subject %}
+    <div class="subject">
+        <h1>{{ model.template.title }}</h1>
+    </div>
+    {% endblock %}
+
+    {% block invoice_content_introduction %}
+        {% if introductionText %}
+        <div class="introduction-text">
+            <p>{{ introductionText }}</p>
+        </div>
+        {% endif %}
+    {% endblock %}
+
+    {% block invoice_content_items %}
+    <div class="items">
+        <table cellpadding="0" cellspacing="0" width="100%" border="0">
+            <thead>
+            <tr>
+                <th class="text-left">Pos.</th>
+                <th class="text-left">{{ 'label.description'|trans }}</th>
+                <th class="text-right text-nowrap">{{ 'label.amount'|trans }}</th>
+                <th class="text-right text-nowrap">{{ 'label.unit_price'|trans }}</th>
+                <th class="text-right text-nowrap">{{ 'label.total_rate'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for entry in model.calculator.entries %}
+                <!-- CONTENT_PART -->
+                {% set duration = entry.duration|duration(isDecimal) %}
+                {% if entry.fixedRate is not null %}
+                    {% set rate = entry.fixedRate %}
+                    {% set duration = entry.amount|amount %}
+                {% else %}
+                    {% set rate = entry.hourlyRate %}
+                {% endif %}
+
+                <tr>
+                    <td class="text-left">{{ loop.index }}</td>
+                    <td class="text-left">
+                        {{ entry.project.name }}:
+                        {% if entry.activity is not null %}
+                            <strong>
+                                {{ entry.activity.name }}
+                            </strong>
+                        {% endif %}
+                        {% if entry.description is not empty %}
+                            <br><small>{{ entry.description }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-right text-nowrap">{{ duration }}</td>
+                    <td class="text-right text-nowrap">{{ rate|money(currency) }}</td>
+                    <td class="text-right text-nowrap">{{ entry.rate|money(currency) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+            {% if model.calculator.tax > 0 or not model.isHideZeroTax() %}
+                <tr>
+                    <td colspan="3" class="text-right text-nowrap">
+                        {{ 'invoice.subtotal'|trans }}
+                    </td>
+                    <td class="text-right text-nowrap">{{ model.calculator.subtotal|money(currency) }}</td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="text-right text-nowrap">
+                        {{ 'invoice.tax'|trans }} ({{ model.calculator.vat }}%)
+                    </td>
+                    <td class="text-right text-nowrap">{{ model.calculator.tax|money(currency) }}</td>
+                </tr>
+            {% endif %}
+            <tr>
+                <td colspan="4" class="text-right text-nowrap">
+                    <strong>{{ 'invoice.total'|trans }}</strong>
+                </td>
+                <td class="text-right text-nowrap">
+                    <strong>{{ model.calculator.total|money(currency) }}</strong>
+                </td>
+            </tr>
+            </tfoot>
+        </table>
+        {% endblock %}
+    </div>
+
+    {% block payment_terms %}
+        {% if model.template.paymentTerms is not empty %}
+            <div class="paymentTerms">
+                <p>
+                    {{ model.template.paymentTerms|md2html }}
+                </p>
+            </div>
+        {% endif %}
+    {% endblock %}
+</div>
+{% endblock %}
+</body>
+</html>
