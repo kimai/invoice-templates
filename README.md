@@ -6,7 +6,7 @@ A place for sharing your Kimai invoice templates with the community, a place to 
 
 ### PDF
 
-None yet.
+- [DIN 5008 compliant template](din5008-invoice)
 
 ### HTML
 
