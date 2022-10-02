@@ -8,19 +8,20 @@ A place for sharing your Kimai invoice templates with the community, a place to 
 
 - [DIN 5008 compliant template](din5008-invoice)
 
-### HTML
-
-None yet.
-
 ### Excel
 
 - [Excel letter](xlsx-letter-de)
+- [Basic spreadsheet](xlsx-simple)
 
 ### CSV
 
 - [Export](export)
 
 ### OpenOffice Spreadsheet
+
+- [Basic spreadsheet](oo-spreadsheet)
+
+### HTML
 
 None yet.
 
