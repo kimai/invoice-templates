@@ -10,7 +10,7 @@ A place for sharing your Kimai invoice templates with the community, a place to 
 
 ### Docx
 
-In Kimai 1.x the [Company-Invoice](docx-company) was shipped as default DOCX template.
+- [Company invoice](docx-company)
 
 ### Excel
 
