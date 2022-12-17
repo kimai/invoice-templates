@@ -10,5 +10,6 @@ As it is not auto-translatable by Kimai, it was put here to collect community tr
 List of existing translations: 
 
 - [English](company-en.docx)
+- [Hebrew](company-he.docx) - Right-to-left example b [@yarons](https://github.com/yarons)
 
 ![Screenshot of template](screenshot.png "Screenshot of english template")
