@@ -25,9 +25,11 @@ A place for sharing your Kimai invoice templates with the community, a place to 
 
 - [Basic spreadsheet](oo-spreadsheet)
 
-### HTML
+### Programmatic
 
-None yet.
+- [JSON](data-transfer)
+- [XML](data-transfer)
+- [TEXT](data-transfer)
 
 ## Installation
 
