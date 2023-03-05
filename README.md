@@ -8,6 +8,10 @@ A place for sharing your Kimai invoice templates with the community, a place to 
 
 - [DIN 5008 compliant template](din5008-invoice)
 
+### HTML
+
+- [Example](html-example)
+
 ### Docx
 
 - [Company invoice](docx-company)
