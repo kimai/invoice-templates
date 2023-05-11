@@ -1,6 +1,10 @@
 # Kimai Invoice-Templates
 
-A place for sharing your Kimai invoice templates with the community, a place to find ideas. 
+A place for sharing your Kimai invoice templates with the community, a place to find ideas.
+
+This repository contains two branches:
+- the [main branch for Kimai 2.x](https://github.com/kimai/invoice-templates)
+- the [v1 branch for Kimai 1.x](https://github.com/kimai/invoice-templates/tree/v1)
 
 ## List of all templates
 
