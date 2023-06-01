@@ -1,0 +1,633 @@
+{%- set filename = invoice['invoice.date']|date('Y-m-d') ~ '_' ~ invoice['invoice.number']|replace({'/' : '-'}) ~ '_' ~ invoice['customer.company']|default(invoice['customer.name'])|replace({' ' : '-'}) -%}
+{%- set option = pdfContext.setOption('filename', filename) -%}
+{%- set option = pdfContext.setOption('format', 'A4-P') -%}
+
+{% set company = 'My Company' %}
+{% set tagline = 'Tagline' %}
+{% set highlight = '#008000' %}
+{% set suppress = '#424242' %}
+{% set logoUrl = config('theme.branding.logo') %}
+
+{% set groupByMaxProjects = 50 %}
+
+{% if logoUrl is empty %}
+{% set logoUrl = 'https://www.kimai.org/images/kimai_logo.png' %}
+{% endif %}
+
+{%- set setAutoTopMargin = pdfContext.setOption('setAutoTopMargin', false) -%}
+{%- set setAutoBottomMargin = pdfContext.setOption('setAutoBottomMargin', false) -%}
+{%- set marginBottom = pdfContext.setOption('margin_bottom', 20) -%}
+{%- set marginLeft = pdfContext.setOption('margin_left', 25) -%}
+{%- set marginRight = pdfContext.setOption('margin_right', 20) -%}
+
+{% set showFoldHoleMarks = showFoldHoleMarks ?? true %}
+
+<!DOCTYPE html>
+{% set fallback = app.request is not null ? app.request.locale : 'de' %}
+{% set language = 'de' %}
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{{ invoice['invoice.date']|date('Y-m-d') }} {{ invoice['invoice.number'] }} {{ invoice['customer.company']|default(invoice['customer.name']) }}{% endblock %}</title>
+
+    {% block invoice_styles %}
+        <style type="text/css">
+            @page {
+                margin-top: 45mm;
+                margin-bottom: 30mm;
+                header: html_header;
+                footer: html_footer;
+            }
+
+            @page :first {
+                margin-top: 90mm;
+            }
+
+            body {
+                font-family: 'Arial', sans-serif;
+                font-size: 10pt;
+                line-height: 14pt;
+                margin: 0;
+                padding: 0;
+            }
+
+            .header {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 40mm;
+                padding-top: 20mm;
+            }
+
+            .header-logo {
+                width: 50mm;
+                padding-left: 25mm;
+                padding-right: 5mm;
+            }
+
+            .header-logo-image {
+                width: 20mm;
+            }
+
+            .header-company {
+                text-align: left;
+                vertical-align: middle;
+                padding: 0;
+                height: 20mm;
+                white-space: nowrap;
+                color: {{ suppress }};
+            }
+
+            .header-company-name {
+                font-size: 18pt;
+                font-weight: bold;
+            }
+
+            .header-company-tagline {
+                font-size: 12pt;
+            }
+
+            .header-line {
+                text-align: left;
+                vertical-align: middle;
+                padding: 0;
+                height: 20mm;
+                padding-right: 25mm;
+                padding-left: 15mm;
+                width: 100%;
+            }
+
+            .header-line-line {
+                height: 1mm;
+                font-size: 2pt;
+                background-color: {{ highlight }};
+            }
+
+            .footer-page-number {
+                text-align: left;
+                vertical-align: middle;
+                padding: 0;
+                white-space: nowrap;
+                color: {{ highlight }};
+                font-size: 10pt;
+            }
+
+            .footer-line {
+                vertical-align: middle;
+                padding-left: 5mm;
+                padding-right: 15mm;
+                width: 100%;
+            }
+
+            .footer-line-line {
+                height: 1mm;
+                font-size: 2pt;
+                background-color: {{ highlight }};
+            }
+
+            .footer-address {
+                text-align: right;
+                vertical-align: middle;
+                padding: 0;
+                white-space: nowrap;
+                color: {{ suppress }};
+                font-size: 10pt;
+            }
+
+            .footer-address-company {
+                font-weight: bold;
+            }
+
+            .invoice-address {
+                position: absolute;
+                display: block;
+                overflow: visible;
+                top: 45mm;
+                width: 85mm;
+                height: 45mm;
+                padding: 0;
+            }
+
+            address {
+                font-style: normal;
+            }
+
+            .address-sender td {
+                height: 17.7mm;
+                font-size: 8pt;
+                vertical-align: bottom;
+                border-bottom: 1px dotted #000;
+            }
+
+            .address-recipient {
+                padding-top: 1mm;
+            }
+
+            .invoice-details {
+                position: absolute;
+                overflow: visible;
+                right: 20mm;
+                top: 50mm;
+                height: 60mm;
+                color: {{ suppress }};
+            }
+
+            .invoice-details-label {
+                text-align: left;
+                vertical-align: top;
+                font-weight: normal;
+                color: {{ suppress }};
+            }
+
+            .invoice-details-value {
+                text-align: right;
+                padding-left: 2mm;
+                color: {{ suppress }};
+            }
+
+            .invoice-details-title {
+                font-weight: bold;
+                border-bottom: 0.5mm solid{{ suppress }};
+                color: {{ suppress }};
+            }
+
+            .content {
+                margin-top: 14pt;
+            }
+
+            .introduction-text {
+                margin-bottom: 10pt;
+            }
+
+            .items th {
+                color: {{ suppress }};
+                border-bottom: 1px solid{{ suppress }};
+            }
+
+            .items th,
+            .items td {
+                padding: 1mm 0.5mm;
+                vertical-align: top;
+            }
+
+            .t-nowrap {
+                white-space: nowrap;
+            }
+
+            .t-left {
+                text-align: left;
+            }
+
+            .t-right {
+                text-align: right;
+            }
+
+            .t-center {
+                text-align: center;
+            }
+
+            .project-name {
+                font-weight: bold;
+            }
+
+            .project-total {
+                font-weight: bold;
+            }
+
+            .entry-meta {
+                font-size: 8pt;
+                color: {{ suppress }};
+            }
+
+            .entry-activity,
+            .entry-project {
+                color: {{ suppress }};
+            }
+
+            .entry-description {
+            }
+
+            .fold_mark {
+                position: absolute;
+                left: 0;
+                top: 105mm;
+                width: 5mm;
+                border-bottom: 1px solid #cccccc;
+            }
+
+            .fold_mark_1 {
+                top: 105mm;
+            }
+
+            .fold_mark_2 {
+                top: 210mm;
+            }
+
+            .hole_mark {
+                position: absolute;
+                left: 0;
+                top: 50%;
+                width: 10mm;
+                border-bottom: 2px solid #cccccc;
+            }
+        </style>
+    {% endblock %}
+</head>
+<body>
+<!--mpdf
+<htmlpageheader name="header">
+	{% block header %}
+	<div class="header">
+		<table cellpadding="0" cellspacing="0" width="100%" border="0">
+			<tr>
+				{% block header_logo %}
+					<td class="header-logo">
+					{% if logoUrl %}
+					<img src="{{ logoUrl }}" class="header-logo-image" />
+					{% endif %}
+					</td>
+				{% endblock %}
+				{% block header_company %}
+					<td class="header-company">
+					<span class="header-company-name">{{ company }}</span><br />
+					<span class="header-company-tagline">{{ tagline }}</span>
+					</td>
+				{% endblock %}
+				<td class="header-line">
+					<table cellpadding="0" cellspacing="0" width="100%" border="0">
+					<tr><td class="header-line-line">&nbsp;</td></tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</div>
+	{% if showFoldHoleMarks %}
+		<div class="fold_mark fold_mark_1"></div>
+		<div class="hole_mark"></div>
+		<div class="fold_mark fold_mark_2"></div>
+	{% endif %}
+	{% endblock %}
+</htmlpageheader>
+<htmlpagefooter name="footer">
+	{% block footer %}
+	<div class="footer">
+		<table cellpadding="0" cellspacing="0" width="100%" border="0">
+			<tr>
+				{% block footer_page_numbers %}
+				<td class="footer-page-number">{{ 'export.page_of'|trans({'%page%': '{PAGENO}', '%pages%': '{nb}'}) }}</td>
+				{% endblock %}
+				<td class="footer-line">
+					<table cellpadding="0" cellspacing="0" width="100%" border="0">
+						<tr><td class="footer-line-line">&nbsp;</td></tr>
+					</table>
+				</td>
+				<td class="footer-address">
+					{% block footer_address %}
+					<span class="footer-address-company">{{ invoice['template.company']|nl2br }}</span><br />
+					{{ invoice['template.address']|nl2br }}
+					{% if invoice['template.vat_id'] %}
+					<br />VAT: {{ invoice['template.vat_id'] }}
+					{% endif %}
+					{% endblock %}
+					{% if invoice['template.payment_details'] %}
+					{% block footer_payment_details %}
+					<br />{{ invoice['template.payment_details']|nl2br }}
+					{% endblock %}
+					{% endif %}
+				</td>
+			</tr>
+		</table>
+	</div>
+	{% endblock %}
+</htmlpagefooter>
+mpdf-->
+    <div class="invoice-address">
+        {% block invoice_address_sender %}
+            <address class="address-sender">
+                <table cellpadding="0" cellspacing="0" width="100%" border="0">
+                    <tr>
+                        <td>{{ invoice['user.display'] }}
+                            &bull; {{ invoice['template.address']|nl2str(' &bull; ') }}</td>
+                    </tr>
+                </table>
+            </address>
+        {% endblock %}
+
+        {% block invoice_address_recipient %}
+            <address class="address-recipient">
+                {{ invoice['customer.name'] }}<br>
+                {% if invoice['customer.contact'] %}
+                    {{ invoice['customer.contact'] }}<br>
+                {% endif %}
+                {{ invoice['customer.address']|nl2br }}
+            </address>
+        {% endblock %}
+    </div>
+
+    <div class="invoice-details">
+        <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                {% block invoice_content_subject %}
+                    <th class="invoice-details-label invoice-details-title">{{ invoice['template.title'] }}</th>
+                {% endblock %}
+                {% block invoice_details_invoice_number %}
+                    <td class="invoice-details-value invoice-details-title">{{ invoice['invoice.number'] }}</td>
+                {% endblock %}
+            </tr>
+
+            {% block invoice_details_invoice_date %}
+                <tr>
+                    <th class="invoice-details-label">{{ 'date'|trans }}</th>
+                    <td class="invoice-details-value">{{ invoice['invoice.date'] }}</td>
+                </tr>
+            {% endblock %}
+
+            {% block invoice_details_service_date %}
+                <tr>
+                    <th class="invoice-details-label">{{ 'invoice.service_date'|trans }}</th>
+                    <td class="invoice-details-value">
+                        {% if invoice['query.begin_month_number'] != invoice['query.end_month_number'] %}
+                            {{ invoice['query.begin'] }}<br/>&ndash; {{ invoice['query.end'] }}
+                        {% else %}
+                            {{ invoice['query.begin']|date('m / Y') }}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endblock %}
+
+            {% block invoice_details_due_date %}
+                <tr>
+                    <th class="invoice-details-label">{{ 'invoice.due_days'|trans }}</th>
+                    <td class="invoice-details-value">{{ invoice['invoice.due_date'] }}</td>
+                </tr>
+            {% endblock %}
+
+            {% if invoice['customer.vat_id'] is not empty %}
+                {% block invoice_details_customer_vatid %}
+                    <tr>
+                        <th class="invoice-details-label">{{ 'vat_id'|trans }}</th>
+                        <td class="invoice-details-value">{{ invoice['customer.vat_id'] }}</td>
+                    </tr>
+                {% endblock %}
+            {% endif %}
+        </table>
+    </div>
+    <br/>
+    <div class="content">
+        <!-- CONTENT_PART -->
+        <div class="subject">
+            <h1>{{ invoice['template.title'] }}</h1>
+        </div>
+
+        <div class="introduction-text">
+            <p>
+                Sehr geehrte Damen und Herren,<br/>
+                <br/>
+                heute erhalten Sie die Rechnung f&uuml;r die von mir vom {{ invoice['query.begin'] }} bis
+                zum {{ invoice['query.end'] }} erbrachten Leistungen. Bitte zahlen Sie die Rechnung p&uuml;nktlich, sp&auml;testens
+                jedoch bis zum {{ invoice['invoice.due_date']|date('d.m.Y') }}.
+                {% block invoice_details_contact %}
+                    {% if invoice['user.email'] is not empty %}
+                        Bei R&uuml;ckfragen erreichen Sie mich via E-Mail an {{ invoice['user.email'] }}.
+                    {% endif %}
+                {% endblock %}
+            </p>
+        </div>
+
+        <div class="items">
+            <table cellpadding="0" cellspacing="0" width="100%" border="0">
+                <thead>
+                <tr>
+                    <th class="t-center">Pos.</th>
+                    <th class="t-left">{{ 'description'|trans }}</th>
+                    <th class="t-center text-nowrap">#</th>
+                    <th class="t-right text-nowrap">{{ 'unit_price'|trans }}</th>
+                    <th class="t-right text-nowrap">{{ 'total_rate'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                {% set pos = 1 %}
+
+                {% if invoice['project.' ~ groupByMaxProjects ~ '.id'] is not defined %}
+                    <!-- group by projects: assuming, there is not more projects found then groupByMaxProjects (defined on top of the file) -->
+                    {% for i in 0..groupByMaxProjects %}
+                        {% if i == 0 %}
+                            {% set id = 'project' %}
+                        {% else %}
+                            {% set id = 'project.' ~ i %}
+                        {% endif %}
+
+                        {% if invoice[id ~ '.id'] is defined and invoice[id ~ '.id'] is not null %}
+
+                            {% set totalDuration = 0 %}
+                            {% set totalAmount = 0 %}
+
+                            <tr>
+                                <td></td>
+                                <td class="project-name">{{ invoice[id ~ '.name'] }}</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+
+                            {% for entry in entries %}
+                                <!-- only timesheets, rest will be 'Auslagen' later -->
+                                {% if entry['entry.type'] == 'timesheet' %}
+                                    {% if entry['entry.project_id'] == invoice[id ~ '.id'] %}
+                                        {% set totalAmount = totalAmount + entry['entry.total_plain'] %}
+                                        {% set totalDuration = totalDuration + entry['entry.duration'] %}
+
+                                        <tr>
+                                            <td class="t-nowrap t-center">{{ pos }}{% set pos = pos + 1 %}</td>
+                                            <td class="t-left">
+                                                <span class="entry-meta">
+                                                    {{ entry['entry.begin'] }} {{ entry['entry.begin_time'] }} - {{ entry['entry.end'] }} {{ entry['entry.end_time'] }}<br/>
+                                                </span>
+                                                {% if entry['entry.description'] is not empty %}
+                                                    <span
+                                                        class="entry-description">{{ entry['entry.description'] }}</span>
+                                                {% endif %}
+                                                {% if entry['entry.activity'] is not null %}
+                                                    <span class="entry-activity">({{ entry['entry.activity'] }})</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="t-nowrap t-center">{{ entry['entry.duration_format'] }}</td>
+                                            <td class="t-nowrap t-right">{{ entry['entry.rate'] }}</td>
+                                            <td class="t-nowrap t-right">{{ entry['entry.total'] }}</td>
+                                        </tr>
+
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+
+                            <tr>
+                                <td></td>
+                                <td class="project-total t-left">Zwischensumme:</td>
+                                <td class="project-total t-nowrap t-center">{{ totalDuration|duration }}</td>
+                                <td></td>
+                                <td class="project-total t-nowrap t-right">{{ totalAmount|money(invoice['invoice.currency']) }}</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                            </tr>
+
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <!-- do not group by projects -->
+                    {% for entry in entries %}
+                        <!-- only timesheets, rest will be 'Auslagen' later -->
+                        {% if entry['entry.type'] == 'timesheet' %}
+
+                            <tr>
+                                <td class="t-nowrap t-center">{{ pos }}{% set pos = pos + 1 %}</td>
+                                <td class="t-left">
+                                    {% if entry['entry.description'] is not empty %}
+                                        <span class="entry-description">{{ entry['entry.description'] }}</span>
+                                    {% endif %}
+
+                                    {% if entry['entry.project'] is not null %}
+                                        <span class="entry-project">({{ entry['entry.project'] }})</span>
+                                    {% endif %}
+
+                                    {% if entry['entry.activity'] is not null %}
+                                        <span class="entry-activity">({{ entry['entry.activity'] }})</span>
+                                    {% endif %}
+                                </td>
+                                <td class="t-nowrap t-center">{{ entry['entry.duration_format'] }}</td>
+                                <td class="t-nowrap t-right">{{ entry['entry.rate'] }}</td>
+                                <td class="t-nowrap t-right">{{ entry['entry.total'] }}</td>
+                            </tr>
+
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                <!-- everything which is not of type 'timesheet' -->
+                {% set hasOther = false %}
+                {% for entry in entries %}
+                    <!-- anything but timesheets -->
+
+                    {% if entry['entry.type'] != 'timesheet' %}
+
+                        {% if not hasOther %}
+                            <tr>
+                                <td></td>
+                                <td class="project-name t-left">Auslagen</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            {% set hasOther = true %}
+                        {% endif %}
+                        {% set pos = pos + 1 %}
+                        <tr>
+                            <td class="t-nowrap t-center">{{ pos }}</td>
+                            <td class="t-left">
+                                {% if entry['entry.description'] is not empty %}
+                                    <span class="entry-description">{{ entry['entry.description'] }}</span>
+                                {% endif %}
+
+                                {% if entry['entry.project'] is not null %}
+                                    <span class="entry-project">({{ entry['entry.project'] }})</span>
+                                {% endif %}
+                            </td>
+                            <td class="t-nowrap t-center">{{ entry['entry.amount'] }}</td>
+                            <td class="t-nowrap t-right">{{ entry['entry.rate'] }}</td>
+                            <td class="t-nowrap t-right">{{ entry['entry.total'] }}</td>
+                        </tr>
+
+                    {% endif %}
+                {% endfor %}
+
+                </tbody>
+                <tfoot>
+
+	        <tr>
+	        	<td></td>
+	        </tr>
+
+                {% if invoice['invoice.vat'] is not empty %}
+                <tr>
+                    <td colspan="4" class="t-nowrap t-right">
+                        {{ 'invoice.subtotal'|trans }}
+                    </td>
+                    <td class="t-nowrap t-right">
+                        {{ invoice['invoice.subtotal'] }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td colspan="4" class="t-nowrap t-right">
+                        {{ 'invoice.tax'|trans }} ({{ invoice['invoice.vat'] }} %)
+                    </td>
+                    <td class="t-nowrap t-right">
+                        {{ invoice['invoice.tax'] }}
+                    </td>
+                </tr>
+                {% endif %}
+
+                <tr>
+                    <td colspan="4" class="project-name t-nowrap t-right">
+                        {{ 'invoice.total'|trans }}
+                    </td>
+                    <td class="project-name t-nowrap t-right">
+                        {{ invoice['invoice.total'] }}
+                    </td>
+                </tr>
+
+                </tfoot>
+            </table>
+        </div>
+
+        {% if model.template.paymentTerms is not empty %}
+            <div class="paymentTerms">
+                <p>
+                    {{ model.template.paymentTerms|md2html }}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -11,6 +11,7 @@ This repository contains two branches:
 ### PDF
 
 - [DIN 5008 compliant template](din5008-invoice)
+- [Invoice grouped by projects](grouped-by-projects)
 
 ### HTML
 
