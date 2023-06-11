@@ -390,7 +390,7 @@ mpdf-->
                         {% if invoice['query.begin_month_number'] != invoice['query.end_month_number'] %}
                             {{ invoice['query.begin'] }}<br/>&ndash; {{ invoice['query.end'] }}
                         {% else %}
-                            {{ invoice['query.begin']|date('m / Y') }}
+                            {{ invoice['query.begin_month_number'] }} / {{ invoice['query.begin_year'] }}
                         {% endif %}
                     </td>
                 </tr>
@@ -426,7 +426,7 @@ mpdf-->
                 <br/>
                 heute erhalten Sie die Rechnung f&uuml;r die von mir vom {{ invoice['query.begin'] }} bis
                 zum {{ invoice['query.end'] }} erbrachten Leistungen. Bitte zahlen Sie die Rechnung p&uuml;nktlich, sp&auml;testens
-                jedoch bis zum {{ invoice['invoice.due_date']|date('d.m.Y') }}.
+                jedoch bis zum {{ invoice['invoice.due_date'] }}.
                 {% block invoice_details_contact %}
                     {% if invoice['user.email'] is not empty %}
                         Bei R&uuml;ckfragen erreichen Sie mich via E-Mail an {{ invoice['user.email'] }}.
