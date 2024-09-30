@@ -2,7 +2,7 @@
 
 A place for sharing your Kimai invoice templates with the community, a place to find ideas.
 
-Dwfault Kimai invoice templates can be found [in the core repository here](https://github.com/kimai/kimai/tree/main/templates/invoice/renderer).
+Default Kimai invoice templates can be found [in the core repository here](https://github.com/kimai/kimai/tree/main/templates/invoice/renderer).
 
 ## List of all templates
 
