@@ -18,6 +18,7 @@ Default Kimai invoice templates can be found [in the core repository here](https
 ### Docx
 
 - [Company invoice](docx-company)
+- [Project invoice](docx-project)
 
 ### Excel
 
