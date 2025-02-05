@@ -39,6 +39,10 @@ Default Kimai invoice templates can be found [in the core repository here](https
 - [XML](data-transfer)
 - [TEXT](data-transfer)
 
+This one is a bit special, it is a XML document to generate the X-Rechnung format, which is required in the EU:
+
+- [X-Rechnung](xrechnung)
+
 ## Installation
 
 If not existing, create the directory `var/invoices/` in your Kimai installation.
