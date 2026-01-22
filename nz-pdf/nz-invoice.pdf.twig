@@ -15,8 +15,8 @@
             <td class="title">
                 {{ invoice['template.title'] }}
             </td>
-            <td class="date text-right">
-                {{ 'date'|trans }}: {{ invoice['invoice.date'] }}
+            <td class="date text-right" style="font-size: 14px;">
+                <strong>Date:</strong> {{ invoice['invoice.date']|date('d M Y') }}
             </td>
         </tr>
     </table>
@@ -25,12 +25,9 @@
 <htmlpagefooter name="footer">
     <table class="footer">
         <tr>
-            <td>
+            <td style="font-size: 14px;">
                 <strong>{{ 'contact'|trans }}</strong>:
                 {{ invoice['template.contact']|nl2str(' – ') }}
-                <br>
-                <strong>{{ 'invoice_bank_account'|trans }}</strong>:
-                {{ invoice['template.payment_details']|nl2str(' – ') }}
             </td>
             <td align="right">
                 {{ 'export.page_of'|trans({'%page%': '{PAGENO}', '%pages%': '{nb}'}) }}
@@ -54,7 +51,7 @@ mpdf-->
                 {% endif %}
                 {% if invoice['customer.vat_id'] is not empty %}
                     <br>
-                    {{ 'vat_id'|trans }}: {{ invoice['customer.vat_id'] }}
+                    GST Number: {{ invoice['customer.vat_id'] }}
                 {% endif %}
             </td>
             <td>
@@ -71,7 +68,7 @@ mpdf-->
                 {% endif %}
                 {% if invoice['template.vat_id'] is not empty %}
                     <br>
-                    {{ 'vat_id'|trans }}:
+                    GST Number:
                     {{ invoice['template.vat_id'] }}
                 {% endif %}
             </td>
@@ -79,12 +76,12 @@ mpdf-->
     </table>
 
     <p>
-        {{ 'invoice.number'|trans }}:
+        <strong>Invoice Number:</strong>
         {{ invoice['invoice.number'] }}
 
         <br>
-        {{ 'invoice.due_days'|trans }}:
-        {{ invoice['invoice.due_date'] }}
+        <strong>Invoice Due:</strong>
+        {{ invoice['invoice.due_date']|date('d M Y') }}
 
         {% if invoice['customer.number'] is not empty %}
             <br>
@@ -117,7 +114,7 @@ mpdf-->
         {% for invoiceLineItem in entries %}
             <!-- CONTENT_PART -->
             <tr>
-                <td nowrap class="first text-nowrap">{{ invoiceLineItem['entry.begin'] }}</td>
+                <td nowrap class="first text-nowrap">{{ invoiceLineItem['entry.begin']|date('Y/m/d') }}</td>
                 <td>
                     {% if invoiceLineItem['entry.description'] is not empty %}
                         {{ invoiceLineItem['entry.description']|nl2br }}
@@ -145,7 +142,7 @@ mpdf-->
                 {% if taxRow['show'] %}
                 <tr>
                     <td colspan="4" class="text-right">
-                        {{ taxRow['name']|trans }} ({{ taxRow['rate'] }}%)
+                        GST ({{ taxRow['rate'] }}%)
                         {% if taxRow['note'] is not null %}
                             <sup>[{{ taxRow['counter'] }}]</sup>
                         {% endif %}
@@ -174,8 +171,21 @@ mpdf-->
         {% endif %}
     {% endfor %}
 
-    {% if invoice['template.payment_terms'] is not empty %}
-        {{ invoice['template.payment_terms']|md2html }}
-    {% endif %}
+    <div style="margin-top: 30px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9;">
+        <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Payment Information</h3>
+
+        <strong>Bank Details:</strong>
+        {{ invoice['template.payment_details']|nl2br }}
+        <br>
+
+        <strong>Reference:</strong>
+        {{ invoice['invoice.number'] }}
+        <br>
+        <br>
+
+        {% if invoice['template.payment_terms'] is not empty %}
+            {{ invoice['template.payment_terms']|md2html }}
+        {% endif %}
+    </div>
 </body>
 </html>
