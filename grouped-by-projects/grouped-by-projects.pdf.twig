@@ -4,7 +4,7 @@
 {%- set logoUrl = config('theme.branding.logo') -%}
 {%- set groupByMaxProjects = 50 -%}
 {# End Configuration #}
-{%- set filename = invoice['invoice.date']|date('Y-m-d') ~ '_' ~ invoice['invoice.number']|replace({'/' : '-'}) ~ '_' ~ invoice['customer.company']|default(invoice['customer.name'])|replace({' ' : '-'}) -%}
+{%- set filename = invoice['invoice.date_process']|date('Y-m-d') ~ '_' ~ invoice['invoice.number']|replace({'/' : '-'}) ~ '_' ~ invoice['customer.company']|default(invoice['customer.name'])|replace({' ' : '-'}) -%}
 {%- set option = pdfContext.setOption('filename', filename) -%}
 {%- set option = pdfContext.setOption('format', 'A4-P') -%}
 {%- set setAutoTopMargin = pdfContext.setOption('setAutoTopMargin', false) -%}
@@ -17,7 +17,7 @@
 <html lang="{{ invoice['invoice.language'] }}">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}{{ invoice['invoice.date']|date('Y-m-d') }} {{ invoice['invoice.number'] }} {{ invoice['customer.company']|default(invoice['customer.name']) }}{% endblock %}</title>
+    <title>{% block title %}{{ invoice['invoice.date_process']|date('Y-m-d') }} {{ invoice['invoice.number'] }} {{ invoice['customer.company']|default(invoice['customer.name']) }}{% endblock %}</title>
 
     {% block invoice_styles %}
         <style type="text/css">
@@ -483,7 +483,7 @@ mpdf-->
 
                         <tr>
                             <td></td>
-                            <td class="project-total t-left">Zwischensumme:</td>
+                            <td class="project-total t-left">{{ 'invoice.subtotal'|trans }}:</td>
                             <td class="project-total t-nowrap t-center">{{ totalDuration|duration }}</td>
                             <td></td>
                             <td class="project-total t-nowrap t-right">{{ totalAmount|money(invoice['invoice.currency']) }}</td>
