@@ -11,6 +11,7 @@ Default Kimai invoice templates can be found [in the core repository here](https
 - [DIN 5008 compliant template](din5008-invoice)
 - [Invoice grouped by projects](grouped-by-projects)
 - [New Zealand invoice templates](nz-pdf)
+- [Activity Line Items by Project](activity_line_items_by_project)
 
 ### HTML
 
