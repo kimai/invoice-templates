@@ -1,0 +1,148 @@
+{#
+  Custom Kimai invoice: grouped by PROJECT, with one detail row per timesheet.
+  Columns: Date | Activity | Description | Hours | Rate | Amount
+
+  Install:
+    1. Save this file as:  var/invoices/project-grouped.pdf.twig
+    2. Clear the Kimai cache.
+    3. Edit your invoice template settings -> Document = "project-grouped"
+    4. Edit your invoice template settings -> Calculation = one row per timesheet
+       (NOT "grouped by project" -- that collapses detail into a single row).
+
+  Note: .twig documents must be placed on disk. The in-app document upload
+  only accepts DOCX/ODS/XLSX, so this file cannot be uploaded via the UI.
+#}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ invoice['invoice.number'] }} - {{ invoice['customer.company']|default(invoice['customer.name']) }}</title>
+    <style type="text/css">
+        {{ encore_entry_css_source('invoice-pdf')|raw }}
+
+        body           { font-family: sans-serif; font-size: 12px; color: #222; }
+
+        .topbar-table          { width:100%; border-collapse:collapse; margin-bottom:28px; }
+        .topbar-table td       { padding:0; border:none; vertical-align:top; }
+        .topbar-table .logo-cell   { text-align:right; }
+        .topbar-table .meta-cell   { text-align:right; padding-top:6mm; }
+        .topbar-table .billto-cell { padding-top:6mm; }
+
+        table.items            { width:100%; border-collapse:collapse; margin-top:8px; }
+        table.items th         { text-align:left; border-bottom:2px solid #333; padding:6px 8px;
+                                 font-size:10px; text-transform:uppercase; letter-spacing:.03em; }
+        table.items td         { padding:5px 8px; border-bottom:1px solid #ececec; vertical-align:middle; }
+        .num                   { text-align:right; white-space:nowrap; }
+
+        tr.project-row td      { background:#f4f4f4; font-weight:bold; padding-top:10px; padding-bottom:10px;
+                                 border-bottom:1px solid #333; vertical-align:middle; }
+        tr.subtotal-row td     { font-weight:bold; border-bottom:1px solid #ececec;
+                                 padding-top:20px; padding-bottom:6px; vertical-align:middle; }
+        tr.tax-row td          { font-weight:bold; border-bottom:1px solid #ececec;
+                                 padding-top:11px; padding-bottom:6px; vertical-align:middle; }
+
+        tfoot td               { padding:8px 8px; vertical-align:middle; }
+        tfoot td.label         { text-align:right; }
+        tfoot tr.grand td      { font-size:14px; border-top:2px solid #333; border-bottom:none; }
+
+        .terms { margin-top:32px; white-space:pre-line; }
+    </style>
+</head>
+<body>
+
+<table class="topbar-table">
+    <tr>
+        <td>
+            <strong>{{ invoice['issuer.company']|default(invoice['issuer.name']) }}</strong><br>
+            {{ invoice['issuer.address_line1'] }}<br>
+            {% if invoice['issuer.address_line2'] %}{{ invoice['issuer.address_line2'] }}<br>{% endif %}
+            {{ invoice['issuer.postcode'] }} {{ invoice['issuer.city'] }}<br>
+            {% if invoice['issuer.country_name'] %}{{ invoice['issuer.country_name'] }}<br>{% endif %}
+            {% if invoice['issuer.vat_id'] %}VAT: {{ invoice['issuer.vat_id'] }}{% endif %}
+        </td>
+        <td class="logo-cell">
+            <img style="width:16mm;height:16.13mm;" src="/opt/kimai/public/images/ptyxo-logo.png" alt="PTYXO">
+        </td>
+    </tr>
+    <tr>
+        <td class="billto-cell">
+            <strong>Bill to</strong><br>
+            {{ invoice['customer.company']|default(invoice['customer.name']) }}<br>
+            {{ invoice['customer.address_line1'] }}<br>
+            {% if invoice['customer.address_line2'] %}{{ invoice['customer.address_line2'] }}<br>{% endif %}
+            {{ invoice['customer.postcode'] }} {{ invoice['customer.city'] }}<br>
+            {% if invoice['customer.country_name'] %}{{ invoice['customer.country_name'] }}{% endif %}
+        </td>
+        <td class="meta-cell">
+            <h2>Invoice {{ invoice['invoice.number'] }}</h2>
+            Date: {{ invoice['invoice.date'] }}<br>
+            Due: {{ invoice['invoice.due_date'] }}<br>
+            Period: {{ invoice['invoice.first'] }} &ndash; {{ invoice['invoice.last'] }}
+        </td>
+    </tr>
+</table>
+
+{# --- distinct, first-seen-ordered list of projects on this invoice --- #}
+{% set projects = [] %}
+{% for item in entries %}
+    {% if item['entry.project'] not in projects %}
+        {% set projects = projects|merge([item['entry.project']]) %}
+    {% endif %}
+{% endfor %}
+
+<table class="items">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Activity</th>
+            <th>Description</th>
+            <th class="num">Hours</th>
+            <th class="num">Rate</th>
+            <th class="num">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for project in projects %}
+        <tr class="project-row">
+            <td colspan="6">{{ project }}</td>
+        </tr>
+
+        {% for item in entries %}
+            {% if item['entry.project'] == project %}
+                <tr>
+                    <td>{{ item['entry.date'] }}</td>
+                    <td>{{ item['entry.activity'] }}</td>
+                    <td>{{ item['entry.description_safe'] }}</td>
+                    <td class="num">{{ item['entry.duration_format'] }}</td>
+                    <td class="num">{{ item['entry.rate'] }}</td>
+                    <td class="num">{{ item['entry.total'] }}</td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr class="subtotal-row">
+            <td class="label" colspan="5">Subtotal (net)</td>
+            <td class="num">{{ invoice['invoice.subtotal'] }}</td>
+        </tr>
+        {% for tax in invoice['invoice.tax_rows'] %}
+            {% if tax['show'] %}
+            <tr class="tax-row">
+                <td class="label" colspan="5">{{ tax['name']|trans }} ({{ tax['rate'] }}%)</td>
+                <td class="num">{{ tax['amount']|money(tax['currency']) }}</td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+        <tr class="grand subtotal-row">
+            <td class="label" colspan="5">Total</td>
+            <td class="num">{{ invoice['invoice.total'] }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<div class="terms">{{ invoice['template.payment_terms'] }}</div>
+<div class="terms">{{ invoice['template.payment_details'] }}</div>
+
+</body>
+</html>
