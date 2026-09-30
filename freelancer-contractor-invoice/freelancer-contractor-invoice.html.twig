@@ -1,0 +1,244 @@
+{#-
+    Freelancer & Contractor Invoice for Kimai (HTML version)
+    A one-page, black and white invoice for hourly work.
+    MIT License - Community Contribution
+    Every number on this invoice (hours, rates, line amounts, tax and totals)
+    comes straight from Kimai. This template only controls how they look.
+-#}
+{#- ================================================================
+    SETTINGS: change these to fit your business.
+    ================================================================ -#}
+{%- set tax_label = '' -%}{#- Tax line label, e.g. 'GST/HST' or 'VAT'. Leave empty to use the tax name from Kimai. -#}
+{#- Show or hide parts of the invoice. Set to false to remove one. -#}
+{%- set show_billing_period  = true -%}{#- The 'Billing period' line in the header. -#}
+{%- set show_due_date        = true -%}{#- The 'Payment due:' line in the header. -#}
+{%- set show_service_column  = true -%}{#- The 'Service' column in the line item table. -#}
+{%- set show_rate_column     = true -%}{#- The 'Rate' column in the line item table. -#}
+{%- set show_total_hours     = true -%}{#- The 'Total hours' line above the subtotal. -#}
+{%- set show_tax_row         = true -%}{#- The tax line. Hide it only if you never charge tax. -#}
+{%- set show_payment_terms   = true -%}{#- The 'Payment terms' box. Text comes from the Kimai template. -#}
+{%- set show_payment_details = true -%}{#- The 'Payment details' box. Text comes from the Kimai template. -#}
+{#- Rename any label without touching the markup below. -#}
+{%- set label_service        = 'Service' -%}
+{%- set label_total_hours    = 'Total hours' -%}
+{%- set label_payment_terms  = 'Payment terms' -%}
+{%- set label_payment_details = 'Payment details' -%}
+{%- import _self as fmt -%}
+{%- macro day(processed, formatted) -%}
+    {%- if processed is not empty -%}{{ processed|date('M j, Y') }}{%- else -%}{{ formatted }}{%- endif -%}
+{%- endmacro -%}
+{#- Swap long dashes typed into Kimai fields for a normal hyphen. -#}
+{%- set dashes = {'—': '-', '–': '-'} -%}
+{%- set customerName = invoice['customer.company']|default(invoice['customer.name']) -%}
+{%- set customerAddress = invoice['customer.address']|default('')|trim -%}
+{%- set customerCountry = invoice['customer.country_name']|default('') -%}
+{%- set customerEmail = invoice['customer.invoice_email']|default(invoice['customer.email']|default('')) -%}
+{%- set senderAddress = invoice['template.address']|default('')|trim -%}
+{%- set senderCountry = invoice['template.country_name']|default('') -%}
+{%- set periodStart = fmt.day(invoice['query.begin_process']|default(invoice['invoice.first_process']|default('')), invoice['query.begin']|default(invoice['invoice.first']|default(''))) -%}
+{%- set periodEnd = fmt.day(invoice['query.end_process']|default(invoice['invoice.last_process']|default('')), invoice['query.end']|default(invoice['invoice.last']|default(''))) -%}
+<!DOCTYPE html>
+<html lang="{{ invoice['invoice.language']|default('en') }}">
+<head>
+<meta charset="utf-8">
+<title>Invoice {{ invoice['invoice.number'] }} - {{ customerName }}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap">
+<style>
+    @page { size: letter; margin: 16mm 16mm 18mm 16mm; }
+    body {
+        margin: 0;
+        background: #fff;
+        color: #000;
+        font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-variant-numeric: tabular-nums;
+        font-size: 9.5pt;
+        line-height: 1.45;
+    }
+    @media screen { .sheet { max-width: 8.5in; margin: 24px auto; padding: 16mm; border: 1px solid #000; } }
+    @media print { .sheet { margin: 0; padding: 0; border: 0; } }
+    table { border-collapse: collapse; }
+    td, th { vertical-align: top; padding: 0; }
+    .num { text-align: right; white-space: nowrap; }
+    .nowrap { white-space: nowrap; }
+    .label {
+        font-size: 7.5pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.8pt;
+        padding-bottom: 4pt;
+        margin-bottom: 4pt;
+    }
+    /* Header */
+    .header td, .header th { padding: 1.5pt 0; }
+    .title { font-size: 24pt; font-weight: bold; letter-spacing: 1.5pt; line-height: 1.1; }
+    .subtitle { font-size: 10pt; padding-top: 4pt; }
+    .header th { text-align: left; font-weight: normal; padding-right: 12pt; white-space: nowrap; }
+    .header td.value { text-align: right; font-weight: bold; white-space: nowrap; }
+    .rule { border-top: 1.5pt solid #000; height: 1pt; margin-top: 12pt; }
+    /* From / Bill to */
+    .parties { margin-top: 18pt; }
+    .parties td { padding-right: 24pt; }
+    .party-name { font-weight: bold; font-size: 10.5pt; }
+    /* Line items */
+    .items { margin-top: 20pt; }
+    .items th {
+        font-size: 7.5pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.8pt;
+        text-align: left;
+        padding: 0 8pt 6pt 0;
+        border-bottom: 1pt solid #000;
+    }
+    .items th.num { text-align: right; padding-right: 0; padding-left: 14pt; }
+    .items td { padding: 5.5pt 8pt 5.5pt 0; border-bottom: 0.5pt solid #000; }
+    .items td.num { padding-right: 0; padding-left: 14pt; }
+    /* Totals */
+    .totals { margin-top: 14pt; }
+    .totals th { text-align: left; font-weight: normal; padding: 3pt 0; }
+    .totals td.value { text-align: right; padding: 3pt 0; white-space: nowrap; }
+    .totals tr.grand th, .totals tr.grand td.value {
+        border-top: 1.5pt solid #000;
+        padding-top: 8pt;
+        font-size: 12pt;
+        font-weight: bold;
+    }
+    /* Payment */
+    .payment { margin-top: 22pt; border-top: 0.5pt solid #000; page-break-inside: avoid; }
+    .payment td { padding: 12pt 24pt 0 0; }
+</style>
+</head>
+<body>
+<div class="sheet">
+<table class="header" width="100%">
+    <tr>
+        <td rowspan="{{ 2 + (show_billing_period ? 1 : 0) + (show_due_date ? 1 : 0) }}" width="52%">
+            <div class="title">INVOICE</div>
+            {%- if invoice['template.title']|default('') is not empty %}
+            <div class="subtitle">{{ invoice['template.title']|replace(dashes) }}</div>
+            {%- endif %}
+        </td>
+        <th>Invoice number:</th><td class="value">{{ invoice['invoice.number'] }}</td>
+    </tr>
+    <tr><th>Invoice date:</th><td class="value">{{ fmt.day(invoice['invoice.date_process']|default(''), invoice['invoice.date']) }}</td></tr>
+    {%- if show_billing_period %}
+    <tr><th>Billing period:</th><td class="value">{{ periodStart }} - {{ periodEnd }}</td></tr>
+    {%- endif %}
+    {%- if show_due_date %}
+    <tr><th>Payment due:</th><td class="value">{{ fmt.day(invoice['invoice.due_date_process']|default(''), invoice['invoice.due_date']) }}</td></tr>
+    {%- endif %}
+</table>
+<div class="rule"></div>
+<table class="parties" width="100%">
+    <tr>
+        <td width="50%">
+            <div class="label">From</div>
+            <div class="party-name">{{ invoice['template.company']|default('')|replace(dashes) }}</div>
+            {%- if senderAddress is not empty %}
+            <div>{{ senderAddress|replace(dashes)|nl2br }}</div>
+            {%- endif %}
+            {%- if senderCountry is not empty and senderCountry not in senderAddress %}
+            <div>{{ senderCountry }}</div>
+            {%- endif %}
+            {%- if invoice['template.contact']|default('')|trim is not empty %}
+            <div>{{ invoice['template.contact']|trim|replace(dashes)|nl2br }}</div>
+            {%- endif %}
+            {%- if invoice['template.vat_id']|default('') is not empty %}
+            <div>Tax ID: {{ invoice['template.vat_id'] }}</div>
+            {%- endif %}
+        </td>
+        <td width="50%">
+            <div class="label">Bill to</div>
+            <div class="party-name">{{ customerName|replace(dashes) }}</div>
+            {%- if invoice['customer.contact']|default('') is not empty %}
+            <div>Attn: {{ invoice['customer.contact']|replace(dashes) }}</div>
+            {%- endif %}
+            {%- if customerAddress is not empty %}
+            <div>{{ customerAddress|replace(dashes)|nl2br }}</div>
+            {%- endif %}
+            {%- if customerCountry is not empty and customerCountry not in customerAddress %}
+            <div>{{ customerCountry }}</div>
+            {%- endif %}
+            {%- if customerEmail is not empty %}
+            <div>{{ customerEmail }}</div>
+            {%- endif %}
+            {%- if invoice['customer.vat_id']|default('') is not empty %}
+            <div>Tax ID: {{ invoice['customer.vat_id'] }}</div>
+            {%- endif %}
+        </td>
+    </tr>
+</table>
+<table class="items" width="100%">
+    <thead>
+        <tr>
+            <th>Date</th>
+            {%- if show_service_column %}
+            <th class="nowrap">{{ label_service }}</th>
+            {%- endif %}
+            <th>Description</th>
+            <th class="num">Hours</th>
+            {%- if show_rate_column %}
+            <th class="num">Rate</th>
+            {%- endif %}
+            <th class="num">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+    {%- for line in entries %}
+        <tr>
+            <td class="nowrap">{{ fmt.day(line['entry.date_process']|default(''), line['entry.date']|default(line['entry.begin'])) }}</td>
+            {%- if show_service_column %}
+            <td class="nowrap">{{ line['entry.activity']|default(line['entry.project']|default(''))|replace(dashes) }}</td>
+            {%- endif %}
+            <td>{{ line['entry.description']|default('')|replace(dashes)|nl2br }}</td>
+            <td class="num">{{ line['entry.amount'] }}</td>
+            {%- if show_rate_column %}
+            <td class="num">{{ line['entry.rate'] }}</td>
+            {%- endif %}
+            <td class="num">{{ line['entry.total'] }}</td>
+        </tr>
+    {%- endfor %}
+    </tbody>
+</table>
+<table class="totals" width="100%">
+    {%- if show_total_hours %}
+    <tr><td width="54%" rowspan="10"></td><th>{{ label_total_hours }}</th><td class="value">{{ invoice['invoice.duration_decimal'] }}</td></tr>
+    <tr><th>Subtotal</th><td class="value">{{ invoice['invoice.subtotal'] }}</td></tr>
+    {%- else %}
+    <tr><td width="54%" rowspan="10"></td><th>Subtotal</th><td class="value">{{ invoice['invoice.subtotal'] }}</td></tr>
+    {%- endif %}
+    {%- if show_tax_row %}
+    {%- if invoice['invoice.tax_rows'] is defined %}
+        {%- for tax in invoice['invoice.tax_rows'] %}
+            {%- if tax['show'] %}
+    <tr><th>{{ tax_label is not empty ? tax_label : tax['name']|trans }} ({{ tax['rate'] }}%)</th><td class="value">{{ tax['amount']|money(tax['currency']) }}</td></tr>
+            {%- endif %}
+        {%- endfor %}
+    {%- else %}
+    <tr><th>{{ tax_label is not empty ? tax_label : 'Tax' }} ({{ invoice['invoice.vat'] }}%)</th><td class="value">{{ invoice['invoice.tax'] }}</td></tr>
+    {%- endif %}
+    {%- endif %}
+    <tr class="grand"><th>Total ({{ invoice['invoice.currency'] }})</th><td class="value">{{ invoice['invoice.total'] }}</td></tr>
+</table>
+{%- set terms = show_payment_terms ? invoice['template.payment_terms']|default('')|trim : '' %}
+{%- set details = show_payment_details ? invoice['template.payment_details']|default('')|trim : '' %}
+{%- if terms is not empty or details is not empty %}
+<table class="payment" width="100%">
+    <tr>
+        {%- if terms is not empty %}
+        <td width="{{ details is not empty ? '50%' : '100%' }}">
+            <div class="label">{{ label_payment_terms }}</div>
+            <div>{{ terms|replace(dashes)|nl2br }}</div>
+        </td>
+        {%- endif %}
+        {%- if details is not empty %}
+        <td width="{{ terms is not empty ? '50%' : '100%' }}">
+            <div class="label">{{ label_payment_details }}</div>
+            <div>{{ details|replace(dashes)|nl2br }}</div>
+        </td>
+        {%- endif %}
+    </tr>
+</table>
+{%- endif %}
+</div>
+</body>
+</html>
